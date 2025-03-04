@@ -27,8 +27,9 @@ class Client(commands.Bot):
         if proxy:
             logger.debug(f"Using proxy settings: {proxy}")
 
-        super().__init__(command_prefix=".", intents=Intents.default(), proxy=proxy)
-        self.intents.message_content = True
+        intents = Intents.default()
+        intents.message_content = True
+        super().__init__(command_prefix=".", intents=intents, proxy=proxy)
 
     async def on_ready(self) -> None:
         logger.info(f"{self.user} is now running!")
