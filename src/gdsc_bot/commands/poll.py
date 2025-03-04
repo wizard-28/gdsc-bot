@@ -97,7 +97,7 @@ class PollCommand(commands.Cog):
 
         # Subtract one as we don't want to count the bot's own reaction.
         counts = [
-            (valid_choices[i][0], reaction.count - 1)
+            (valid_choices[i], reaction.count - 1)
             for i, reaction in enumerate(fetched_msg.reactions)
             if reaction.emoji in emojis
         ]
