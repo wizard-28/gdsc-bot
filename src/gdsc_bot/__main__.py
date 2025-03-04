@@ -2,7 +2,9 @@ import os
 import sys
 from typing import Final
 
-from discord import Client, Intents, Message
+import discord
+from discord import Intents, Message
+from discord.ext import commands
 from dotenv import load_dotenv
 from loguru import logger
 
@@ -14,16 +16,34 @@ token = os.getenv("TOKEN")
 
 if not token:
     logger.error("Unable to read token")
-    sys.exit(-1)
+    sys.exit(1)
 
 TOKEN: Final[str] = token
 logger.debug("Token read successfully")
 
 
+class Client(commands.Bot):
+    async def on_ready(self) -> None:
+        logger.info(f"{self.user} is now running!")
+
+        try:
+            synced = await client.tree.sync()
+            logger.info(f"Synced {len(synced)} commands globally")
+        except Exception as e:
+            logger.error(f"Error syncing commands: {e}")
+
+    async def on_message(self, message: Message) -> None:
+        if message.author == self.user or message.author.bot:
+            return
+
+        logger.debug(f"[{message.channel}] {message.author}: {message.content}")
+        await send_message(message, message.content)
+
+
 async def send_message(message: Message, user_message: str) -> None:
     """Process user message and send a response."""
     if not user_message:
-        logger.error("Message was empty because intents were not enabled probably")
+        logger.error("Message was empty, possibly due to missing intents.")
         return
 
     try:
@@ -34,26 +54,20 @@ async def send_message(message: Message, user_message: str) -> None:
         await message.channel.send("Oops! Something went wrong. Please try again.")
 
 
+intents = Intents.default()
+intents.message_content = True
+
+proxy = os.getenv("PROXY")
+client = Client(command_prefix=".", intents=intents, proxy=proxy)
+
+
+@client.tree.command(name="hello", description="Say hello!")
+async def say_hello(interaction: discord.Interaction) -> None:
+    await interaction.response.send_message("Hello!")
+
+
 def main() -> None:
     """Initialize and run the bot."""
-    intents = Intents.default()
-    intents.message_content = True
-
-    proxy = os.getenv("PROXY")
-    client = Client(intents=intents, proxy=proxy) if proxy else Client(intents=intents)
-
-    @client.event
-    async def on_ready() -> None:
-        logger.info(f"{client.user} is now running!")
-
-    @client.event
-    async def on_message(message: Message) -> None:
-        if message.author == client.user or message.author.bot:
-            return
-
-        logger.debug(f"[{message.channel}] {message.author}: {message.content}")
-        await send_message(message, message.content)
-
     client.run(TOKEN)
 
 
