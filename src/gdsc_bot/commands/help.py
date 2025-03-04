@@ -1,8 +1,9 @@
-from datetime import datetime
 import discord
-from discord import Color, app_commands
+from discord import app_commands
 from discord.ext import commands
 from loguru import logger
+
+from gdsc_bot import GDSCEmbed
 
 
 class HelpCommand(commands.Cog):
@@ -14,11 +15,9 @@ class HelpCommand(commands.Cog):
         description="Shows a list of available commands and their descriptions.",
     )
     async def help(self, interaction: discord.Interaction) -> None:
-        embed = discord.Embed(
-            color=Color.dark_teal(),
+        embed = GDSCEmbed(
             title="Bot Help Menu",
             description="Here are the available commands:",
-            timestamp=datetime.now(),
         )
 
         # Iterate over all registered application commands

@@ -1,9 +1,10 @@
-from datetime import datetime
 from typing import Optional
 import discord
 from discord.ext import commands
-from discord import app_commands, Color
+from discord import app_commands
 from loguru import logger
+
+from gdsc_bot import GDSCEmbed
 
 
 class PollCommand(commands.Cog):
@@ -58,16 +59,14 @@ class PollCommand(commands.Cog):
         valid_choices = [choice for choice in choices if choice]
 
         # Prepare the poll embed
-        poll_embed = discord.Embed(
-            title=title, color=Color.dark_teal(), timestamp=datetime.now()
-        ).set_footer(
-            text=f"Poll by {interaction.user.name}",
-            icon_url=interaction.user.display_avatar.url,
-        )
-        poll_embed.description = "\n".join(
+        description = "\n".join(
             [f"{emojis[i]} {choice}" for i, choice in enumerate(valid_choices)]
         )
 
+        poll_embed = GDSCEmbed(title=title, description=description).set_footer(
+            text=f"Poll by {interaction.user.name}",
+            icon_url=interaction.user.display_avatar.url,
+        )
         await interaction.response.send_message(embed=poll_embed)
         fetched_msg = await interaction.original_response()
 
@@ -110,11 +109,9 @@ class PollCommand(commands.Cog):
             ]
         )
 
-        result_embed = discord.Embed(
+        result_embed = GDSCEmbed(
             title="Poll results",
             url=fetched_msg.jump_url,
-            color=Color.dark_teal(),
-            timestamp=datetime.now(),
             description=result,
         ).set_footer(
             text=f"Poll by {interaction.user.name}",
