@@ -4,13 +4,31 @@ version = "0.1.0"
 description = "Discord bot for GDSC Technical Task Round-2"
 authors = [{ name = "Sourajyoti Basak", email = "wiz28@protonmail.com" }]
 readme = "README.md"
-requires-python = ">=3.13"
-dependencies = []
+requires-python = ">=3.13,<4.0"
+dependencies = [
+  "dotenv (>=0.9.9,<0.10.0)",
+  "discord-py (>=2.5.0,<3.0.0)",
+  "loguru (>=0.7.3,<0.8.0)",
+]
 
 [tool.poetry]
 packages = [{ include = "gdsc_bot", from = "src" }]
 
 
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.9.9"
+black = "^25.1.0"
+mypy = "^1.15.0"
+pre-commit = "^4.1.0"
+
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+show-fixes = true
+fix = true
+
+[tool.mypy]
+disable_error_code = ["import-not-found", "misc"]
+files = "src"
