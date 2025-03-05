@@ -7,6 +7,7 @@
   be able to set a reminder by sending a message with the time and date of the
   reminder in a specific format
 - `poll`: Users should be able to create Polls.
+- Automatic welcome card when a new user joins
 
 ## Running instructions
 
