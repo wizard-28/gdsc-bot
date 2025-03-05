@@ -9,3 +9,5 @@ This file details my development process and thought process.
 6. Setup the `respond` command. Get the API key from [gemini website](https://aistudio.google.com/apikey). Use the [Google Gen AI SDK](https://pypi.org/project/google-genai/).
 7. Setup the `help` command. Sources: <https://www.youtube.com/watch?v=gX4_ZJl9BKg>
 8. Create the `poll` command, sources: various
+9. Implement reminder related commands, sources: <https://www.youtube.com/watch?v=kNUuYEWGOxA>, <https://www.youtube.com/watch?v=tQvzuVQPNyQ>, use `rapidfuzz`
+10. Welcome message: <https://www.youtube.com/watch?v=V4ekOOPMg1k>, use `easy_pil`
