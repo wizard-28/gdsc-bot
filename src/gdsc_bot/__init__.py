@@ -5,8 +5,10 @@ from discord.types.embed import EmbedType
 from datetime import datetime
 
 
-# Subclass `discord.Embed` so we don't have to repeat the same parameters again and again
+#
 class GDSCEmbed(discord.Embed):
+    """Subclass `discord.Embed` so we don't have to repeat the same parameters again and again"""
+
     def __init__(
         self,
         *,

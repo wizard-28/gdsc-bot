@@ -11,3 +11,5 @@ This file details my development process and thought process.
 8. Create the `poll` command, sources: various
 9. Implement reminder related commands, sources: <https://www.youtube.com/watch?v=kNUuYEWGOxA>, <https://www.youtube.com/watch?v=tQvzuVQPNyQ>, use `rapidfuzz`
 10. Welcome message: <https://www.youtube.com/watch?v=V4ekOOPMg1k>, use `easy_pil`
+11. Ask friends to test the bot, find multiple bugs and fix them.
+12. Add docs

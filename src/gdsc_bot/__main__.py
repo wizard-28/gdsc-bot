@@ -7,10 +7,15 @@ from aiohttp import ClientSession
 from discord import File, Intents, Member, Message, Game
 from discord.ext import commands
 from dotenv import load_dotenv
+
+# Loguru will enable us to log things, good for debugging
+# Could have used default python logger also but this is easier to setup
+# and I wanted to try it
 from loguru import logger
 from easy_pil import Editor, Font, load_image_async
 
 # Load environment variables
+# Stores private information soch as the `TOKEN` and the `GEMINI_API_KEY`
 load_dotenv()
 token = os.getenv("TOKEN")
 
@@ -24,6 +29,7 @@ logger.debug("Token read successfully")
 
 class Client(commands.Bot):
     def __init__(self) -> None:
+        # If the user has a proxy, then use that for future networking operations
         proxy = os.getenv("http_proxy")
         self.proxy = proxy
 
@@ -38,17 +44,24 @@ class Client(commands.Bot):
         super().__init__(command_prefix=".", intents=intents, proxy=proxy)
 
     async def on_ready(self) -> None:
+        """Hook activates when the bot has finished logging into discord and is ready"""
+        # Set the rich presence thing, so it shows "Playing /help", so that the users can see the help command quickly
         await self.change_presence(activity=Game("/help"))
+
+        # Set the `aiohttp` client to use our proxy settings
         self.client = ClientSession(proxy=self.proxy)
         logger.info(f"{self.user} is now running!")
 
     async def on_shutdown(self) -> None:
         logger.info("Goodbye!")
+        # Remember to close the `aiohttp` client
         await self.client.close()
 
     async def setup_hook(self) -> None:
-        """Load commands from the 'commands' folder"""
+        """Load commands from the 'commands' folder during setup"""
 
+        # Walk through every command file in the commands directory (python files) and load them as an extension.
+        # So we don't have to manually import the commands
         current_file_path = Path(__file__).resolve()
         commands_dir = current_file_path.parent / "commands"
 
@@ -61,21 +74,27 @@ class Client(commands.Bot):
                     logger.error(f"Failed to load command {filename}: {e}")
 
         try:
+            # Sync the slash commands with discord globally
+            # BUG: This doesn't work always
             synced = await self.tree.sync()
             logger.info(f"Synced {len(synced)} commands globally")
         except Exception as e:
             logger.error(f"Error syncing commands: {e}")
 
     async def on_message(self, message: Message) -> None:
+        """This hook activates whenever a new message is sent in any of the channels"""
+        # Don't reply to bot messages
         if message.author == self.user or message.author.bot:
             return
 
         logger.debug(f"[{message.channel}] {message.author}: {message.content}")
 
     async def on_member_join(self, member: Member) -> None:
+        """Send a welcome card to the user, use `easy_pil` to edit the background image"""
         if member.bot:
             return
 
+        # Send the welcome message in the server's selected system channel
         channel = member.guild.system_channel
         if not channel:
             return

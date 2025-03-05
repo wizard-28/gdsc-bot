@@ -10,6 +10,7 @@ class HelloCommand(commands.Cog):
 
     @app_commands.command(name="hello", description="Say hello!")
     async def say_hello(self, interaction: discord.Interaction) -> None:
+        """Basic hello command"""
         await interaction.response.send_message("Hello!")
         logger.info(f"User {interaction.user} used /hello")
 

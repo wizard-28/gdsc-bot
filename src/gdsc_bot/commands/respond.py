@@ -7,11 +7,18 @@ from loguru import logger
 
 
 class RespondCommand(commands.Cog):
+    """
+    Command for responding to user messages using gemini API
+    """
+
     def __init__(self, bot: commands.Bot):
+        # Load the API key
         genai_key = os.getenv("GEMINI_API_KEY")
 
         if not genai_key:
             logger.error("Unable to road gemini api key")
+
+        # Make the gemini client
         self.genai_client = genai.Client(api_key=genai_key)
         self.bot = bot
 
@@ -21,6 +28,7 @@ class RespondCommand(commands.Cog):
         await interaction.response.defer()  # Defer response if the API call takes time
 
         try:
+            # Call the API to get the response for the user's prompt
             response = self.genai_client.models.generate_content(
                 model="gemini-2.0-flash", contents=prompt
             )
@@ -62,6 +70,8 @@ class RespondCommand(commands.Cog):
 
             logger.info(f"User {interaction.user} used /respond with prompt: {prompt}")
 
+        # Blanket `Exception` is bad I know, but the user doesn't need to know which error occured.
+        # So just log it instead
         except Exception as e:
             logger.error(f"Error in /respond: {e}")
             await interaction.followup.send("An error occurred. Please try again.")

@@ -8,6 +8,14 @@ from gdsc_bot import GDSCEmbed
 
 
 class PollCommand(commands.Cog):
+    """
+    Allows the user to set polls.
+
+    They can specify a maximum of 10 choices, 2 being compulsory.
+
+    The author can end the poll by reacting with the tick mark emoji.
+    """
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
@@ -42,6 +50,7 @@ class PollCommand(commands.Cog):
     ) -> None:
         logger.info(f"User {interaction.user} used /poll")
 
+        # Keep all the choices in a list, for easier manipulation
         choices = [
             choice1,
             choice2,
@@ -63,13 +72,17 @@ class PollCommand(commands.Cog):
             [f"{emojis[i]} {choice}" for i, choice in enumerate(valid_choices)]
         )
 
+        # Send the inital poll message with the polls
         poll_embed = GDSCEmbed(title=title, description=description).set_footer(
             text=f"Poll by {interaction.user.name}",
             icon_url=interaction.user.display_avatar.url,
         )
         await interaction.response.send_message(embed=poll_embed)
+
+        # Fetch the sent message to add the reaction buttons
         fetched_msg = await interaction.original_response()
 
+        # Add reaction buttons
         for i in range(len(valid_choices)):
             await fetched_msg.add_reaction(emojis[i])
 
@@ -78,7 +91,9 @@ class PollCommand(commands.Cog):
         # Used for the percentage calculation later
         total_reactions = 0
 
-        def check(reaction: discord.Reaction, user: discord.Member) -> bool:
+        def check_if_the_author_reacted_with_tick(
+            reaction: discord.Reaction, user: discord.Member
+        ) -> bool:
             nonlocal total_reactions
             if reaction.message.id != fetched_msg.id:
                 return False
@@ -88,7 +103,9 @@ class PollCommand(commands.Cog):
 
             return str(reaction.emoji) == "✅" and user == interaction.user
 
-        await self.bot.wait_for("reaction_add", check=check)
+        await self.bot.wait_for(
+            "reaction_add", check=check_if_the_author_reacted_with_tick
+        )
 
         # Fetch updated message to get reaction counts
         channel = interaction.channel

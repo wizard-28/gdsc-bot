@@ -5,7 +5,7 @@ from discord.ext import commands
 from loguru import logger
 from datetime import datetime, timedelta
 from typing import NamedTuple, Optional
-from rapidfuzz import process, fuzz
+from rapidfuzz import process
 
 from gdsc_bot import GDSCEmbed
 
@@ -66,7 +66,7 @@ class RemindCommand(commands.Cog):
             await asyncio.sleep(3)
 
     async def reminder_autocomplete(
-        self, _interaction: discord.Interaction, current: str
+        self, interaction: discord.Interaction, current: str
     ) -> list[app_commands.Choice[int]]:
         """
         Provides auto completion for reminder slash command
@@ -75,30 +75,32 @@ class RemindCommand(commands.Cog):
         Otherwise use `rapidfuzz` to fuzzy search the top 5 best reminder matches accoring to the reminder message
         and show that.
 
-        Returns the index of the selected reminder.
+        Returns the reminder
         """
         if not current:  # If no input, return all options
             return [
                 app_commands.Choice(
-                    name=f"{msg} at {dt.strftime(DATE_TIME_FORMAT)}", value=i
+                    name=f"{reminder.message} at {reminder.dt.strftime(DATE_TIME_FORMAT)}",
+                    value=self.reminders.index(reminder),
                 )
-                for i, (_, msg, dt) in enumerate(self.reminders)
+                for reminder in self.reminders
+                if reminder.user == interaction.user
             ]
 
         # Create a dictionary mapping messages to their index
         message_index_map = {
-            msg: (i, dt) for i, (_, msg, dt) in enumerate(self.reminders)
+            f"{reminder.message}: {reminder.dt.strftime(DATE_TIME_FORMAT)}": reminder
+            for reminder in self.reminders
+            if reminder.user == interaction.user
         }
 
         # Perform fuzzy matching
-        matches = process.extract(
-            current, message_index_map.keys(), limit=5, scorer=fuzz.ratio
-        )
+        matches = process.extract(current, message_index_map.keys(), limit=5)
 
         return [
             app_commands.Choice(
-                name=f"{match} at {message_index_map[match][1].strftime(DATE_TIME_FORMAT)}",
-                value=message_index_map[match][0],
+                name=f"{match} at {message_index_map[match].dt.strftime(DATE_TIME_FORMAT)}",
+                value=self.reminders.index(message_index_map[match]),
             )
             for (match, _, _) in matches
         ]
@@ -139,7 +141,7 @@ class RemindCommand(commands.Cog):
         interaction: discord.Interaction,
         reminder: int,
         message: Optional[str],
-        time: str,
+        time: Optional[str],
         day: Optional[str],
     ) -> None:
         """
@@ -149,9 +151,28 @@ class RemindCommand(commands.Cog):
 
         Then the future time is calculated, the old reminder is deleted and the new reminder is added.
         """
+        if not message and not time and not day:
+            await interaction.response.send_message(
+                "Reminder unmodified, it stays the same"
+            )
+            return
+
         logger.info(f"User {interaction.user} used /modifyreminder")
+
         # If the user didn't specify a `message` then reuse the old `message`
-        msg = message if message else self.reminders[reminder][1]
+        msg = message if message else self.reminders[reminder].message
+        print(msg)
+
+        if message and not time and not day:
+            self.reminders[reminder]._replace(message=msg)
+            await interaction.response.send_message(
+                "successfully changed the reminder message!", ephemeral=True
+            )
+            return
+
+        if not time:
+            await interaction.response.send_message("time is required", ephemeral=True)
+            return
 
         try:
             dt = self.calculate_datetime(time, day)
@@ -168,6 +189,23 @@ class RemindCommand(commands.Cog):
         except PastDateTimeError as e:
             await interaction.response.send_message(e, ephemeral=True)
             logger.error(f"{e}")
+
+    @app_commands.command(name="deletereminder", description="Delete a reminder!")
+    @app_commands.describe(
+        reminder="the reminder you want to edit",
+    )
+    @app_commands.autocomplete(reminder=reminder_autocomplete)
+    async def delete_reminder(
+        self, interaction: discord.Interaction, reminder: int
+    ) -> None:
+        """Allows the user to set a new reminder"""
+        logger.info(f"User {interaction.user} used /deletereminder")
+        # If the user didn't specify a `message` then reuse the old `message`
+        del self.reminders[reminder]
+
+        await interaction.response.send_message(
+            "Reminder deleted successfully!", ephemeral=True
+        )
 
     @app_commands.command(name="setreminder", description="Set a reminder!")
     @app_commands.describe(
@@ -186,9 +224,14 @@ class RemindCommand(commands.Cog):
         logger.info(f"User {interaction.user} used /setreminder")
         try:
             dt = self.calculate_datetime(time, day)
-            if (
-                reminder := Reminder(interaction.user, message, dt)
-            ) not in self.reminders:
+            if not [
+                reminder
+                for reminder in self.reminders
+                if reminder.dt == dt
+                and reminder.message == message
+                and reminder.user == interaction.user
+            ]:
+                reminder = Reminder(interaction.user, message, dt)
                 await interaction.response.send_message(
                     f"I'll remind you on <t:{int(dt.timestamp())}>"
                 )
@@ -212,7 +255,8 @@ class RemindCommand(commands.Cog):
         logger.info(f"User {interaction.user} used /listreminders")
         reminders = [
             f"{i}. <t:{int(dt.timestamp())}>: {msg}"
-            for i, (_, msg, dt) in enumerate(self.reminders)
+            for i, (user, msg, dt) in enumerate(self.reminders, start=1)
+            if user == interaction.user
         ]
         desp = "\n".join(reminders)
 
