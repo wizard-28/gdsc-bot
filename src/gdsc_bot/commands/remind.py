@@ -10,10 +10,10 @@ from rapidfuzz import process, fuzz
 from gdsc_bot import GDSCEmbed
 
 
-class PastDateError(Exception):
+class PastDateTimeError(Exception):
     """The date passed in was already over."""
 
-    def __init__(self, message: str = "The day passed in is already over!") -> None:
+    def __init__(self, message: str) -> None:
         self.message = message
         super().__init__(self.message)
 
@@ -109,15 +109,19 @@ class RemindCommand(commands.Cog):
 
         if day:
             dt = datetime.combine(datetime.strptime(day, DATE_FORMAT), dt.time())
-            # If the user specifies a past date, inform them
-            if dt < now:
-                raise PastDateError()
         else:
             dt = datetime.combine(now.date(), dt.time())
 
             # If the time has already passed today, set it for tomorrow
             if dt < now:
                 dt += timedelta(days=1)
+
+        # If the user specifies a past date, inform them
+        if dt < now:
+            if dt.date() < now.date():
+                raise PastDateTimeError(message="The day passed in is already over")
+            if dt.time() < now.time():
+                raise PastDateTimeError(message="The time passed in is already over")
 
         logger.debug(f"Calculated date time: {dt}")
         return dt
@@ -161,7 +165,7 @@ class RemindCommand(commands.Cog):
                 f"Invalid time: {e}", ephemeral=True
             )
             logger.error(f"Invalid time: {e}")
-        except PastDateError as e:
+        except PastDateTimeError as e:
             await interaction.response.send_message(e, ephemeral=True)
             logger.error(f"{e}")
 
@@ -198,7 +202,7 @@ class RemindCommand(commands.Cog):
                 f"Invalid time: {e}", ephemeral=True
             )
             logger.error(f"Invalid time: {e}")
-        except PastDateError as e:
+        except PastDateTimeError as e:
             await interaction.response.send_message(f"{e}", ephemeral=True)
             logger.error(f"{e}")
 
