@@ -4,7 +4,7 @@ from typing import Final
 
 from pathlib import Path
 from aiohttp import ClientSession
-from discord import File, Intents, Member, Message
+from discord import File, Intents, Member, Message, Game
 from discord.ext import commands
 from dotenv import load_dotenv
 from loguru import logger
@@ -38,6 +38,7 @@ class Client(commands.Bot):
         super().__init__(command_prefix=".", intents=intents, proxy=proxy)
 
     async def on_ready(self) -> None:
+        await self.change_presence(activity=Game("/help"))
         self.client = ClientSession(proxy=self.proxy)
         logger.info(f"{self.user} is now running!")
 
