@@ -5,9 +5,10 @@
 - `respond`: Respond to user messages in the Discord server using the Gemini API
 - reminders: Create, delete, and modify reminders for users in the Discord server. Users should
   be able to set a reminder by sending a message with the time and date of the
-  reminder in a specific format
+  reminder in a specific format. Auto delete expired reminders
 - `poll`: Users should be able to create Polls.
 - Automatic welcome card when a new user joins
+- Summarize long message using `Summarize` context menu option
 
 ## Running instructions
 
