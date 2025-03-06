@@ -13,3 +13,4 @@ This file details my development process and thought process.
 10. Welcome message: <https://www.youtube.com/watch?v=V4ekOOPMg1k>, use `easy_pil`
 11. Ask friends to test the bot, find multiple bugs and fix them.
 12. Add docs
+13. Improve the `/help` command

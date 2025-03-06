@@ -37,7 +37,7 @@ DATE_FORMAT = "%d-%m-%Y"  # <date>-<month>-<year>
 TIME_FORMAT = "%I:%M %p"  # <12-hours hour>:<minutes> <AM/PM>
 
 
-class RemindCommand(commands.Cog):
+class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[call-arg]
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.reminders: list[Reminder] = []
@@ -128,7 +128,7 @@ class RemindCommand(commands.Cog):
         logger.debug(f"Calculated date time: {dt}")
         return dt
 
-    @app_commands.command(name="modifyreminder", description="Modify a reminder!")
+    @app_commands.command(name="modify", description="Modify a reminder!")
     @app_commands.describe(
         message="the reminder message",
         reminder="the reminder you want to edit",
@@ -161,7 +161,6 @@ class RemindCommand(commands.Cog):
 
         # If the user didn't specify a `message` then reuse the old `message`
         msg = message if message else self.reminders[reminder].message
-        print(msg)
 
         if message and not time and not day:
             self.reminders[reminder]._replace(message=msg)
@@ -181,16 +180,13 @@ class RemindCommand(commands.Cog):
             )
             del self.reminders[reminder]
             self.reminders.append(Reminder(interaction.user, msg, dt))
-        except ValueError as e:
+        except (ValueError, PastDateTimeError) as e:
             await interaction.response.send_message(
                 f"Invalid time: {e}", ephemeral=True
             )
-            logger.error(f"Invalid time: {e}")
-        except PastDateTimeError as e:
-            await interaction.response.send_message(e, ephemeral=True)
             logger.error(f"{e}")
 
-    @app_commands.command(name="deletereminder", description="Delete a reminder!")
+    @app_commands.command(name="delete", description="Delete a reminder!")
     @app_commands.describe(
         reminder="the reminder you want to edit",
     )
@@ -200,14 +196,13 @@ class RemindCommand(commands.Cog):
     ) -> None:
         """Allows the user to set a new reminder"""
         logger.info(f"User {interaction.user} used /deletereminder")
-        # If the user didn't specify a `message` then reuse the old `message`
         del self.reminders[reminder]
 
         await interaction.response.send_message(
             "Reminder deleted successfully!", ephemeral=True
         )
 
-    @app_commands.command(name="setreminder", description="Set a reminder!")
+    @app_commands.command(name="set", description="Set a reminder!")
     @app_commands.describe(
         message="the reminder message",
         time=f"set the time in {TIME_FORMAT} (Ex: 12:30 PM)",
@@ -224,13 +219,13 @@ class RemindCommand(commands.Cog):
         logger.info(f"User {interaction.user} used /setreminder")
         try:
             dt = self.calculate_datetime(time, day)
-            if not [
+            if not any(
                 reminder
                 for reminder in self.reminders
                 if reminder.dt == dt
                 and reminder.message == message
                 and reminder.user == interaction.user
-            ]:
+            ):
                 reminder = Reminder(interaction.user, message, dt)
                 await interaction.response.send_message(
                     f"I'll remind you on <t:{int(dt.timestamp())}>"
@@ -240,16 +235,13 @@ class RemindCommand(commands.Cog):
                 await interaction.response.send_message(
                     "The reminder already exists!", ephemeral=True
                 )
-        except ValueError as e:
+        except (ValueError, PastDateTimeError) as e:
             await interaction.response.send_message(
                 f"Invalid time: {e}", ephemeral=True
             )
-            logger.error(f"Invalid time: {e}")
-        except PastDateTimeError as e:
-            await interaction.response.send_message(f"{e}", ephemeral=True)
             logger.error(f"{e}")
 
-    @app_commands.command(name="listreminders", description="List all reminders!")
+    @app_commands.command(name="list", description="List all reminders!")
     async def list_reminder(self, interaction: discord.Interaction) -> None:
         """Allows the user to list existing reminders"""
         logger.info(f"User {interaction.user} used /listreminders")
@@ -258,11 +250,11 @@ class RemindCommand(commands.Cog):
             for i, (user, msg, dt) in enumerate(self.reminders, start=1)
             if user == interaction.user
         ]
-        desp = "\n".join(reminders)
 
         embed = GDSCEmbed(
+            self.bot,
             title="Reminders",
-            description=desp
+            description="\n".join(reminders)
             if reminders
             else "No reminders set. Set reminders using `/setreminder` command!",
         )

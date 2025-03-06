@@ -73,7 +73,9 @@ class PollCommand(commands.Cog):
         )
 
         # Send the inital poll message with the polls
-        poll_embed = GDSCEmbed(title=title, description=description).set_footer(
+        poll_embed = GDSCEmbed(
+            self.bot, title=title, description=description
+        ).set_footer(
             text=f"Poll by {interaction.user.name}",
             icon_url=interaction.user.display_avatar.url,
         )
@@ -127,6 +129,7 @@ class PollCommand(commands.Cog):
         )
 
         result_embed = GDSCEmbed(
+            self.bot,
             title="Poll results",
             url=fetched_msg.jump_url,
             description=result,
