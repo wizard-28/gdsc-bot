@@ -1,18 +1,18 @@
 import os
 import sys
+from pathlib import Path
 from typing import Final
 
-from pathlib import Path
 from aiohttp import ClientSession
-from discord import File, Intents, Member, Message, Game
+from discord import File, Game, Intents, Member, Message
 from discord.ext import commands
 from dotenv import load_dotenv
+from easy_pil import Editor, Font, load_image_async
 
 # Loguru will enable us to log things, good for debugging
 # Could have used default python logger also but this is easier to setup
 # and I wanted to try it
 from loguru import logger
-from easy_pil import Editor, Font, load_image_async
 
 # Load environment variables
 # Stores private information soch as the `TOKEN` and the `GEMINI_API_KEY`

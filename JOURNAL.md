@@ -14,4 +14,5 @@ This file details my development process and thought process.
 11. Ask friends to test the bot, find multiple bugs and fix them.
 12. Add docs
 13. Improve the `/help` command
-    1.4 Add `summarize` context menu command
+14. Add `summarize` context menu command
+15. Rewrite `remind.py` using a min-heap

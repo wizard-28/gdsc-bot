@@ -1,7 +1,8 @@
 from typing import Optional
+
 import discord
-from discord.ext import commands
 from discord import app_commands
+from discord.ext import commands
 from loguru import logger
 
 from gdsc_bot import GDSCEmbed
@@ -120,6 +121,9 @@ class PollCommand(commands.Cog):
             for i, reaction in enumerate(fetched_msg.reactions)
             if reaction.emoji in emojis
         ]
+
+        # Ensures that we're not dividing by zero
+        total_reactions = max(1, total_reactions)
 
         result = "\n".join(
             [
