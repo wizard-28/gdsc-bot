@@ -17,7 +17,7 @@ reminder in a specific format.
 
 Also there's a `summarize` context menu option to summarize long messages
 
-![summarize.png](assets/summarize.png)
+![summarize_pic.png](assets/summarize_pic.png)
 
 ## Running instructions
 
