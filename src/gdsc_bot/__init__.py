@@ -7,7 +7,10 @@ from discord.types.embed import EmbedType
 
 
 class GDSCEmbed(discord.Embed):
-    """Subclass `discord.Embed` so we don't have to repeat the same parameters again and again"""
+    """Subclass `discord.Embed` so we don't have to repeat the same parameters again and again
+
+    Defines the regular embeds that the bot sends
+    """
 
     def __init__(
         self,
@@ -38,6 +41,8 @@ class GDSCEmbed(discord.Embed):
 
 
 class SuccessEmbed(discord.Embed):
+    """Defines the 'success embeds' that the bot sends when any action is successful"""
+
     def __init__(
         self,
         bot: discord.Client,
@@ -60,6 +65,7 @@ class SuccessEmbed(discord.Embed):
             timestamp=timestamp,
         )
         assert bot.user
+        # Thumbnail of the white tick mark emoji
         self.set_thumbnail(
             url="https://em-content.zobj.net/source/twitter/408/check-mark-button_2705.png"
         )
@@ -69,6 +75,8 @@ class SuccessEmbed(discord.Embed):
 
 
 class ErrorEmbed(discord.Embed):
+    """Defines the 'error embeds' that the bot sends when any action is failed"""
+
     def __init__(
         self,
         bot: discord.Client,
@@ -91,6 +99,7 @@ class ErrorEmbed(discord.Embed):
             timestamp=timestamp,
         )
         assert bot.user
+        # Thumbnail of the cross mark emoji
         self.set_thumbnail(
             url="https://em-content.zobj.net/source/twitter/408/cross-mark_274c.png"
         )

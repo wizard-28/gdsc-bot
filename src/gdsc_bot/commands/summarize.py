@@ -13,7 +13,9 @@ async def summarize(interaction: discord.Interaction, message: discord.Message) 
 
     Basically the same as `respond.py` except with the additional summarize prompt
     """
-    await interaction.response.defer()  # Defer response if the API call takes time
+    await (
+        interaction.response.defer()
+    )  # Defer response as the Gemini API call takes time
 
     # Load the API key
     genai_key = os.getenv("GEMINI_API_KEY")

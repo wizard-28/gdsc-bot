@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Final
 
 from aiohttp import ClientSession
-from discord import File, Game, Intents, Member, Message
+from discord import File, Game, Intents, Member
 from discord.ext import commands
 from dotenv import load_dotenv
 from easy_pil import Editor, Font, load_image_async
@@ -36,6 +36,7 @@ class Client(commands.Bot):
         if proxy:
             logger.debug(f"Using proxy settings: {proxy}")
 
+        # Intents lets us select what data we want discord to send to the bot
         intents = Intents.default()
         intents.message_content = True
         intents.members = True
@@ -68,7 +69,7 @@ class Client(commands.Bot):
         for filename in commands_dir.iterdir():
             if filename.name.endswith(".py") and filename.name != "__init__.py":
                 try:
-                    await self.load_extension(f"gdsc_bot.commands.{filename.name[:-3]}")
+                    await self.load_extension(f"gdsc_bot.commands.{filename.stem}")
                     logger.info(f"Loaded command: {filename}")
                 except Exception as e:
                     logger.error(f"Failed to load command {filename}: {e}")
@@ -80,14 +81,6 @@ class Client(commands.Bot):
             logger.info(f"Synced {len(synced)} commands globally")
         except Exception as e:
             logger.error(f"Error syncing commands: {e}")
-
-    async def on_message(self, message: Message) -> None:
-        """This hook activates whenever a new message is sent in any of the channels"""
-        # Don't reply to bot messages
-        if message.author == self.user or message.author.bot:
-            return
-
-        logger.debug(f"[{message.channel}] {message.author}: {message.content}")
 
     async def on_member_join(self, member: Member) -> None:
         """Send a welcome card to the user, use `easy_pil` to edit the background image"""

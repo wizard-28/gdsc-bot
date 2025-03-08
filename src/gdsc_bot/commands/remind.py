@@ -9,7 +9,7 @@ from discord import Member, User, app_commands
 from discord.ext import commands
 from loguru import logger
 from rapidfuzz import process
-from sortedcontainers import SortedList, SortedSet
+from sortedcontainers import SortedSet
 
 from gdsc_bot import ErrorEmbed, GDSCEmbed, SuccessEmbed
 
@@ -22,7 +22,8 @@ class PastDateTimeError(Exception):
         super().__init__(self.message)
 
 
-@dataclass(order=True)
+# Order makes it comparable by `dt`, frozen makes it immutable and thus making it hashable
+@dataclass(order=True, frozen=True)
 class Reminder:
     dt: datetime
     message: str
@@ -37,17 +38,52 @@ CHECKING_FREQUENCY = 3
 
 
 class ReminderManager:
+    """Abstracts away the reminder manager, so the `RemindCommand` doesn't have to worry about the underlying details of the manager.
+
+    Makes it easy for us to switch to another algorithm later on based on performance needs without affecting the upstream coed"""
+
     def __init__(self) -> None:
-        self.reminders: defaultdict[User | Member, SortedList] = defaultdict(
-            lambda: SortedList()
+        """
+        Use a defaultdict[User | Memeber, SortedList[Reminder]] as the underlying backend of the manager.
+
+        This currently looks the best for implementing this class. As it's performance characteristics are quite good and it naturally groups reminders per user. So there's no chance of reminder leakage form one user to another.
+
+        Performance characteristics:
+        u -> Number of reminders each user has
+        U -> Total number of users
+        N -> Total number of reminders in the system (not used)
+
+        set_reminder: O(log u)
+        list_remindrs: O(u)
+        modify_reminder: O(log u)
+        delete_reminder: O(log u)
+        check_reminders: O(U)
+        """
+        self.reminders: defaultdict[User | Member, SortedSet] = defaultdict(
+            lambda: SortedSet()
         )
 
     def list_reminders(self, user: User | Member) -> SortedSet | None:
+        """
+        Gets all the reminders for a user.
+
+        Performance characteristics:
+        u -> number of reminders of a user
+        O(u): As it gets **all** of the reminders of the user
+        """
         return self.reminders.get(user)
 
     def set_reminder(self, user: User | Member, dt: datetime, message: str) -> None:
+        """
+        Sets a new reminder, raise a ValueError if it already exists.
+
+        Performance characteristics:
+        u -> number of reminders of a user.
+        O(log u) -> We only need to do a binary search to insert the reminder in the right position.
+        """
         reminder = Reminder(dt, message)
 
+        # Constant time as it's a sorted set.
         if reminder in self.reminders[user]:
             raise ValueError("The reminder already exists")
 
@@ -61,7 +97,15 @@ class ReminderManager:
         message: str | None = None,
     ) -> None:
         """
-        Raises ValueError
+        Modifies an existsing reminder.
+
+        Either or both the new datetime and the new message should be passsed in.
+        Otherwise use the old values.
+        Fails if nothing is passed in.
+
+        Performance characteristics:
+        u -> number of reminders of a user.
+        O(log u) -> We only need to do 2 binary searches to remove the old reminder and insert the new one
         """
         if not message and not dt:
             raise ValueError("At least datetime or message should be present")
@@ -79,12 +123,26 @@ class ReminderManager:
         self.reminders[user].add(Reminder(dt, message))
 
     def delete_reminder(self, user: User | Member, reminder: Reminder) -> None:
+        """
+        Deletes an existing reminder, if all the reminders are deleted then delete the user key as well to keep the system clean.
+
+        Performance characteristics:
+        u -> number of reminders of a user.
+        O(log u) -> We only need to do a binary search to remove the old reminder.
+        """
         self.reminders[user].remove(reminder)
 
         if not self.reminders[user]:
             del self.reminders[user]
 
     def get_expired_reminders(self) -> list[tuple[User | Member, Reminder]]:
+        """
+        Loop through every user and get the expired reminders from the beginning of the set.
+
+        Performance characteristics:
+        U -> Total number of users.
+        O(U): As we're looping through all users and geting the first few expired reminders from them.
+        """
         expired_reminders = []
         for user, reminders in self.reminders.items():
             for reminder in reminders:
@@ -98,20 +156,20 @@ class ReminderManager:
         return expired_reminders
 
     def get_reminder(self, user: User | Member, reminder_index: int) -> Reminder:
+        """Helper function for upstream code to get the `Reminder` object from an index value"""
         return cast(Reminder, self.reminders[user][reminder_index])
 
 
 class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[call-arg]
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
-        # Min-heap, the earliest reminder is at index 0
         self.reminder_manager = ReminderManager()
 
         # Create a background task to check the reminders
         self.bot.loop.create_task(self.check_reminders())
 
     async def check_reminders(self) -> None:
-        """Check the first element in the `self.reminders` min-heap, if it's expired every 3 seconds."""
+        """Checks for expired reminders every `CHECKING_FREQUENCY` seconds."""
         await self.bot.wait_until_ready()
 
         while not self.bot.is_closed():
@@ -125,6 +183,8 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
                     self.bot,
                     description=f"On <t:{int(reminder.dt.timestamp())}> you asked me to remind you about: {reminder.message}",
                 )
+
+                # If the user is from a guild then set the thumbnail as the guild icon
                 if isinstance(user, Member):
                     if user.guild.icon:
                         embed.set_thumbnail(url=user.guild.icon.url)
@@ -138,7 +198,7 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
         self, interaction: discord.Interaction, current: str
     ) -> list[app_commands.Choice[int]]:
         """
-        Provides auto completion for reminder slash command
+        Provides auto completion for reminder slash commands
 
         If no `current` input is present then show all the reminders with their timestamp.
         Otherwise use `rapidfuzz` to fuzzy search the top 5 best reminder matches accoring to the reminder message
@@ -149,7 +209,7 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
         reminders = self.reminder_manager.list_reminders(interaction.user)
         if not reminders:
             return []
-        if not current:  # If no input, return all options
+        if not current:  # If no input, return all reminders
             return [
                 app_commands.Choice(
                     name=f"{reminder.message} at {reminder.dt.strftime(DATE_TIME_FORMAT)}",
@@ -177,12 +237,15 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
         ]
 
     def calculate_datetime(self, time: str, day: Optional[str] = None) -> datetime:
+        # Get the initial date setup from the `time`
         dt = datetime.strptime(time, TIME_FORMAT)
         now = datetime.now()
 
+        # If the day was passed in combine it with the initial dt
         if day:
             dt = datetime.combine(datetime.strptime(day, DATE_FORMAT), dt.time())
         else:
+            # If no day was passed in consider it to be today
             dt = datetime.combine(now.date(), dt.time())
 
             # If the time has already passed today, set it for tomorrow
@@ -206,7 +269,7 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
     @app_commands.describe(
         message="the reminder message",
         old_reminder="the reminder you want to edit",
-        time=f"set the time in  {TIME_FORMAT} (Ex: 12:30 PM)",
+        time=f"set the time in  {TIME_FORMAT} (Ex: 12:30 pm)",
         day=f"set the date in {DATE_FORMAT} (Ex: 12-12-2025)",
     )
     @app_commands.autocomplete(old_reminder=reminder_autocomplete)
@@ -241,17 +304,17 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
                 self.reminder_manager.modify_reminder(
                     interaction.user, old_reminder_val, message=message
                 )
+                await interaction.response.send_message(
+                    embed=SuccessEmbed(
+                        self.bot, description="Reminder message changed!"
+                    ),
+                    ephemeral=True,
+                )
             except ValueError as e:
                 error_embed = ErrorEmbed(self.bot, description=f"{e}")
                 await interaction.response.send_message(
                     embed=error_embed, ephemeral=True
                 )
-                return
-
-            await interaction.response.send_message(
-                embed=SuccessEmbed(self.bot, description="Reminder message changed!"),
-                ephemeral=True,
-            )
             return
 
         if not message and not (time or day):
@@ -259,7 +322,8 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
                 embed=ErrorEmbed(
                     self.bot,
                     description="You have to specify either the time or the day or the message",
-                )
+                ),
+                ephemeral=True,
             )
             return
 
@@ -280,7 +344,8 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
                 await interaction.response.send_message(
                     embed=SuccessEmbed(
                         self.bot, description="Reminder modified successfully!"
-                    )
+                    ),
+                    ephemeral=True,
                 )
             except ValueError as e:
                 await interaction.response.send_message(
@@ -346,7 +411,7 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
             logger.error(f"{e}")
         except ValueError as e:
             await interaction.response.send_message(
-                embed=ErrorEmbed(self.bot, description=f"{e}")
+                embed=ErrorEmbed(self.bot, description=f"{e}"), ephemeral=True
             )
 
     @app_commands.command(name="list", description="List all reminders!")
