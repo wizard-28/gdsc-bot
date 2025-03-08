@@ -236,7 +236,7 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
             for (match, _, _) in matches
         ]
 
-    def calculate_datetime(self, time: str, day: Optional[str] = None) -> datetime:
+    def __calculate_datetime(self, time: str, day: Optional[str] = None) -> datetime:
         # Get the initial date setup from the `time`
         dt = datetime.strptime(time, TIME_FORMAT)
         now = datetime.now()
@@ -269,8 +269,8 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
     @app_commands.describe(
         message="the reminder message",
         old_reminder="the reminder you want to edit",
-        time=f"set the time in  {TIME_FORMAT} (Ex: 12:30 pm)",
-        day=f"set the date in {DATE_FORMAT} (Ex: 12-12-2025)",
+        time="set the new time (Ex: 12:30 pm)",
+        day="set the new date (Ex: 12-12-2025)",
     )
     @app_commands.autocomplete(old_reminder=reminder_autocomplete)
     async def modify_reminder(
@@ -331,9 +331,9 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
 
         try:
             if time:
-                dt = self.calculate_datetime(time, day)
+                dt = self.__calculate_datetime(time, day)
             else:
-                dt = self.calculate_datetime(
+                dt = self.__calculate_datetime(
                     time=old_reminder_val.dt.time().strftime(TIME_FORMAT), day=day
                 )
 
@@ -382,8 +382,8 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
     @app_commands.command(name="set", description="Set a reminder!")
     @app_commands.describe(
         message="the reminder message",
-        time=f"set the time in {TIME_FORMAT} (Ex: 12:30 PM)",
-        day=f"set the date in {DATE_FORMAT} (Ex: 12-12-2025)",
+        time="set the time (Ex: 12:30 PM)",
+        day="set the date (Ex: 12-12-2025)",
     )
     async def set_reminder(
         self,
@@ -395,7 +395,7 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
         """Allows the user to set a new reminder"""
         logger.info(f"User {interaction.user} used /setreminder")
         try:
-            dt = self.calculate_datetime(time, day)
+            dt = self.__calculate_datetime(time, day)
             self.reminder_manager.set_reminder(interaction.user, dt, message)
             await interaction.response.send_message(
                 embed=SuccessEmbed(
