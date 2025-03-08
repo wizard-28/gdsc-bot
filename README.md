@@ -2,14 +2,14 @@
 
 ## Features Implemented
 
-● Respond to user messages in the Discord server using the Gemini API.
-● Create, delete, and modify reminders for users in the Discord server. Users should
-be able to set a reminder by sending a message with the time and date of the
-reminder in a specific format.
-● Users should be able to create Polls
-● AI-powered Summaries – Users can ask the bot to summarize long messages.
-● Custom Welcome Messages – The bot welcomes new members.
-● Auto-Delete Expired Reminders – To keep the system clean.
+- Respond to user messages in the Discord server using the Gemini API.
+- Create, delete, and modify reminders for users in the Discord server. Users should
+  be able to set a reminder by sending a message with the time and date of the
+  reminder in a specific format.
+- Users should be able to create Polls
+- AI-powered Summaries – Users can ask the bot to summarize long messages.
+- Custom Welcome Messages – The bot welcomes new members.
+- Auto-Delete Expired Reminders – To keep the system clean.
 
 ## Usage
 
