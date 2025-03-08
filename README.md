@@ -2,13 +2,22 @@
 
 ## Features Implemented
 
-- `respond`: Respond to user messages in the Discord server using the Gemini API
-- reminders: Create, delete, and modify reminders for users in the Discord server. Users should
-  be able to set a reminder by sending a message with the time and date of the
-  reminder in a specific format. Auto delete expired reminders
-- `poll`: Users should be able to create Polls.
-- Automatic welcome card when a new user joins
-- Summarize long message using `Summarize` context menu option
+● Respond to user messages in the Discord server using the Gemini API.
+● Create, delete, and modify reminders for users in the Discord server. Users should
+be able to set a reminder by sending a message with the time and date of the
+reminder in a specific format.
+● Users should be able to create Polls
+● AI-powered Summaries – Users can ask the bot to summarize long messages.
+● Custom Welcome Messages – The bot welcomes new members.
+● Auto-Delete Expired Reminders – To keep the system clean.
+
+## Usage
+
+![help.png](assets/help.png)
+
+Also there's a `summarize` context menu option to summarize long messages
+
+![summarize.png](assets/summarize.png)
 
 ## Running instructions
 
