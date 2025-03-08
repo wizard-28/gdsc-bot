@@ -262,6 +262,64 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
         logger.debug(f"Calculated date time: {dt}")
         return dt
 
+    @app_commands.command(name="set", description="Set a reminder!")
+    @app_commands.describe(
+        message="the reminder message",
+        time="set the time (Ex: 12:30 PM)",
+        day="set the date (Ex: 12-12-2025)",
+    )
+    async def set_reminder(
+        self,
+        interaction: discord.Interaction,
+        message: str,
+        time: str,
+        day: Optional[str],
+    ) -> None:
+        """Allows the user to set a new reminder"""
+        logger.info(f"User {interaction.user} used /setreminder")
+        try:
+            dt = self.__calculate_datetime(time, day)
+            self.reminder_manager.set_reminder(interaction.user, dt, message)
+            await interaction.response.send_message(
+                embed=SuccessEmbed(
+                    self.bot,
+                    description=f"I'll remind you on <t:{int(dt.timestamp())}>",
+                )
+            )
+        except PastDateTimeError as e:
+            await interaction.response.send_message(
+                embed=ErrorEmbed(self.bot, description=f"Invalid time: {e}"),
+                ephemeral=True,
+            )
+            logger.error(f"{e}")
+        except ValueError as e:
+            await interaction.response.send_message(
+                embed=ErrorEmbed(self.bot, description=f"{e}"), ephemeral=True
+            )
+
+    @app_commands.command(name="list", description="List all reminders!")
+    async def list_reminder(self, interaction: discord.Interaction) -> None:
+        """Allows the user to list existing reminders"""
+        logger.info(f"User {interaction.user} used /listreminders")
+
+        reminders = self.reminder_manager.list_reminders(interaction.user)
+        if not reminders:
+            embed = GDSCEmbed(
+                self.bot,
+                title="Reminders",
+                description="No reminders set. Set reminders using `/reminders set` command!",
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            return
+
+        reminders_str = "\n".join(
+            f"{i}. <t:{int(reminder.dt.timestamp())}>: {reminder.message}"
+            for i, reminder in enumerate(reminders, start=1)
+        )
+
+        embed = GDSCEmbed(self.bot, title="Reminders", description=reminders_str)
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
     @app_commands.command(
         name="modify",
         description="Modify a reminder! At least any one of `message`, `time` or `day` needs to be edited",
@@ -378,64 +436,6 @@ class RemindCommand(commands.GroupCog, group_name="reminders"):  # type: ignore[
             embed=SuccessEmbed(self.bot, description="Reminder deleted successfully!"),
             ephemeral=True,
         )
-
-    @app_commands.command(name="set", description="Set a reminder!")
-    @app_commands.describe(
-        message="the reminder message",
-        time="set the time (Ex: 12:30 PM)",
-        day="set the date (Ex: 12-12-2025)",
-    )
-    async def set_reminder(
-        self,
-        interaction: discord.Interaction,
-        message: str,
-        time: str,
-        day: Optional[str],
-    ) -> None:
-        """Allows the user to set a new reminder"""
-        logger.info(f"User {interaction.user} used /setreminder")
-        try:
-            dt = self.__calculate_datetime(time, day)
-            self.reminder_manager.set_reminder(interaction.user, dt, message)
-            await interaction.response.send_message(
-                embed=SuccessEmbed(
-                    self.bot,
-                    description=f"I'll remind you on <t:{int(dt.timestamp())}>",
-                )
-            )
-        except PastDateTimeError as e:
-            await interaction.response.send_message(
-                embed=ErrorEmbed(self.bot, description=f"Invalid time: {e}"),
-                ephemeral=True,
-            )
-            logger.error(f"{e}")
-        except ValueError as e:
-            await interaction.response.send_message(
-                embed=ErrorEmbed(self.bot, description=f"{e}"), ephemeral=True
-            )
-
-    @app_commands.command(name="list", description="List all reminders!")
-    async def list_reminder(self, interaction: discord.Interaction) -> None:
-        """Allows the user to list existing reminders"""
-        logger.info(f"User {interaction.user} used /listreminders")
-
-        reminders = self.reminder_manager.list_reminders(interaction.user)
-        if not reminders:
-            embed = GDSCEmbed(
-                self.bot,
-                title="Reminders",
-                description="No reminders set. Set reminders using `/reminders set` command!",
-            )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            return
-
-        reminders_str = "\n".join(
-            f"{i}. <t:{int(reminder.dt.timestamp())}>: {reminder.message}"
-            for i, reminder in enumerate(reminders, start=1)
-        )
-
-        embed = GDSCEmbed(self.bot, title="Reminders", description=reminders_str)
-        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 async def setup(bot: commands.Bot) -> None:
